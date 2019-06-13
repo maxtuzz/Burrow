@@ -121,7 +121,12 @@ func templateCountPartitions(partitions []*protocol.PartitionStatus) map[string]
 
 // Appends supplied certificates to trusted certificate chain
 func buildRootCAs(extraCaFile string, noVerify bool) *x509.CertPool {
-	rootCAs := x509.NewCertPool()
+	certPool, err := x509.SystemCertPool()
+
+	if err != nil {
+		log.Println("Failed to load system cert pool; creating new cert pool.")
+		certPool = x509.NewCertPool()
+	}
 
 	if extraCaFile != "" && !noVerify {
 		certs, err := ioutil.ReadFile(extraCaFile)
@@ -130,12 +135,12 @@ func buildRootCAs(extraCaFile string, noVerify bool) *x509.CertPool {
 			log.Panicf("Failed to append %q to RootCAs: %v", extraCaFile, err)
 		}
 
-		if ok := rootCAs.AppendCertsFromPEM(certs); !ok {
+		if ok := certPool.AppendCertsFromPEM(certs); !ok {
 			log.Println("No certs appended, using system certs only")
 		}
 	}
 
-	return rootCAs
+	return certPool
 }
 
 // Template Helper - do maths
